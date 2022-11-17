@@ -61,7 +61,8 @@ class UserSession:
         if self.session is None:
             return
         self.session.get(
-            url=self.config["BKEL_DOMAIN"] + "/login/logout.php?sesskey={self.sessKey}",
+            url=self.config["BKEL_DOMAIN"]
+            + f"/login/logout.php?sesskey={self.sessKey}",
             allow_redirects=True,
         )
         self.session = None
@@ -89,7 +90,6 @@ if __name__ == "__main__":
     us.setConfig(CONFIG)
     us.logIn()
     cookies, sessKey = us.getSessionInfo()
-    print(cookies)
     assert len(sessKey) == 10
     assert cookies["CASTGC"].startswith("TGT-") and cookies["CASTGC"].endswith(
         "-sso.hcmut.edu.vn"
