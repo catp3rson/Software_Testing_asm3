@@ -12,11 +12,3 @@ repos:
   rev: 22.10.0
   hooks:
   - id: black  # PEP8 auto-formatting
-- repo: https://github.com/PyCQA/bandit
-  rev: 1.7.2
-  hooks:
-  - id: bandit # code auditing
-- repo: https://github.com/Lucas-C/pre-commit-hooks-safety
-  rev: v1.2.4
-  hooks:
-  - id: python-safety-dependencies-check  # dependencies security check

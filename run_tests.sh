@@ -6,10 +6,13 @@ export $(grep -v '^#' .webdriver_manager.env | xargs)
 # run the tests
 if [[ $# -eq 0 ]]
 then
-    python -m unittest discover -s test_cases -p "TC_*_*.py"
+    behave
 else
     for var in "$@"
     do
-        python -m unittest discover -s test_cases/$var -p "TC_*_*.py"
+        if [[ "$var" = *?.feature ]]
+        then
+            behave -i $var
+        fi
     done
 fi
