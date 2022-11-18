@@ -15,7 +15,7 @@ def access_private_files(context):
     wait = WebDriverWait(context.driver, 10)
     wait.until(
         lambda _: context.driver.current_url
-        == context.userSession.config["BKEL_DOMAIN"] + "/user/files.php"
+        == context.config["BKEL_DOMAIN"] + "/user/files.php"
     )
 
 
@@ -37,9 +37,12 @@ def click_add_file_btn(context):
 
 @when("user selects '{filename}' to upload")
 def select_file_and_upload(context, filename):
+    # append filename with random string to avoid
+    # conflict with previously uploaded files
+    randFile = context.fileHandler.prepareFile(context, filename)
     wait = WebDriverWait(context.driver, 10)
     fileUpload = wait.until(EC.element_to_be_clickable((By.NAME, "repo_upload_file")))
-    fileUpload.send_keys(os.getcwd() + f"/test_data/private_file_upload/{filename}")
+    fileUpload.send_keys(randFile)
     uploadBtn = context.driver.find_element(By.CLASS_NAME, "fp-upload-btn")
     uploadBtn.click()
 
@@ -53,12 +56,14 @@ def click_save_btn(context):
 
 @then("user sees '{filename}' in the list of uploaded files")
 def see_uploaded_file(context, filename):
+    randFile = context.fileHandler.getRandFile(context, filename)
+    randFilename = os.path.basename(randFile)
     wait = WebDriverWait(context.driver, 20)
     wait.until(
         EC.presence_of_element_located(
             (
                 By.XPATH,
-                f"//*[text()='{filename}' and contains(@class,'fp-filename')]",
+                f"//*[text()='{randFilename}' and contains(@class,'fp-filename')]",
             )
         )
     )

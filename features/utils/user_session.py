@@ -129,7 +129,10 @@ class UserSession:
         elif browserName == "FIREFOX":
             options = webdriver.FirefoxOptions()
             options.headless = True
-            driver = webdriver.Firefox(GeckoDriverManager().install(), options=options)
+            driver = webdriver.Firefox(
+                "/home/catto/.wdm/drivers/geckodriver/linux64/0.32/geckodriver/",
+                options=options,
+            )
         elif browserName == "EDGE":
             options = webdriver.EdgeOptions()
             options.headless = True
