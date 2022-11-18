@@ -1,27 +1,39 @@
 # -*- coding: utf-8 -*-
 import requests
 import re
-from utils.config import CONFIG
+from selenium import webdriver
+from webdriver_manager.chrome import ChromeDriverManager
+from webdriver_manager.firefox import GeckoDriverManager
+from webdriver_manager.microsoft import EdgeChromiumDriverManager
 
 
 class UserSession:
     def __init__(self):
         self.session = None
+        self.sessKey = None
         self.config = None
+        self.drivers = []
 
     def setConfig(self, config: dict) -> None:
         if not (config["SSO_USERNAME"] and config["SSO_PASSWORD"]):
             raise Exception("Credentials needed for authentication are not set")
+        if len(config["BROWSERS"]) == 0:
+            config["BROWSERS"].append("CHROME")
         self.config = config
+        for browserName in config["BROWSERS"]:
+            self.drivers.append(self.__genDriver(browserName))
 
-    def logIn(self) -> None:
+    def logIn(self, force=False) -> None:
         """
         Log in to BKeL via SSO service without interacting with the Web UI
         """
         if self.config is None:
             raise Exception("Configurations needed for authentication are not set")
         if self.session is not None:
-            self.logOut()
+            if force:
+                self.logOut()
+            else:
+                return
         self.session = requests.Session()
         # get JSESSIONID
         self.session.get(url=self.config["SSO_DOMAIN"] + "/cas/login")
@@ -54,6 +66,20 @@ class UserSession:
         tmp = re.search(r'"sesskey":"(.*?)"', response.text)
         self.sessKey = tmp.group(1)
 
+        # transfer cookies to drivers
+        cookies = self.session.cookies.get_dict()
+        for driver in self.drivers:
+            driver.get(self.config["BKEL_DOMAIN"])
+            driver.add_cookie(
+                {
+                    "name": "MOODLEID1_",
+                    "value": cookies["MOODLEID1_"],
+                }
+            )
+            driver.add_cookie(
+                {"name": "MoodleSession", "value": cookies["MoodleSession"]}
+            )
+
     def logOut(self) -> None:
         """
         Log out of BKeL and SSO service
@@ -65,7 +91,18 @@ class UserSession:
             + f"/login/logout.php?sesskey={self.sessKey}",
             allow_redirects=True,
         )
-        self.session = None
+        self.session = self.sessKey = None
+        # remove cookies from browsers
+        for driver in self.drivers:
+            driver.delete_cookie("MOODLEID1_")
+            driver.delete_cookie("MoodleSession")
+
+    def closeBrowsers(self) -> None:
+        """
+        Call close() on all drivers. Should be called at the very end.
+        """
+        for driver in self.drivers:
+            driver.close()
 
     def getSessionInfo(self) -> tuple[dict, str]:
         """
@@ -84,14 +121,24 @@ class UserSession:
     def isLoggedIn(self) -> bool:
         return self.session is not None
 
+    def __genDriver(self, browserName: str):
+        if browserName == "CHROME":
+            options = webdriver.ChromeOptions()
+            options.headless = True
+            driver = webdriver.Chrome(ChromeDriverManager().install(), options=options)
+        elif browserName == "FIREFOX":
+            options = webdriver.FirefoxOptions()
+            options.headless = True
+            driver = webdriver.Firefox(GeckoDriverManager().install(), options=options)
+        elif browserName == "EDGE":
+            options = webdriver.EdgeOptions()
+            options.headless = True
+            driver = webdriver.Edge(
+                EdgeChromiumDriverManager().install(), options=options
+            )
+        else:
+            raise Exception("Browser type is not supported.")
 
-if __name__ == "__main__":
-    us = UserSession()
-    us.setConfig(CONFIG)
-    us.logIn()
-    cookies, sessKey = us.getSessionInfo()
-    assert len(sessKey) == 10
-    assert cookies["CASTGC"].startswith("TGT-") and cookies["CASTGC"].endswith(
-        "-sso.hcmut.edu.vn"
-    )
-    us.logOut()
+        driver.set_window_size(1920, 1080)
+        driver.maximize_window()
+        return driver

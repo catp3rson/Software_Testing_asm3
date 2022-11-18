@@ -1,34 +1,22 @@
 # -*- coding: utf-8 -*-
 from behave import *
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
+
 
 """
-Steps that are re-used very often
+Steps or functions that are re-used very often
 """
 
 
 @given("user is logged in")
 def user_logged_in(context):
-    if not context.userSession.isLoggedIn():
-        context.userSession.logIn()
-        # copy the cookies from context.userSession to
-        # context.driver to use the session
-        cookies = context.userSession.getCookies()
-
-        # set cookies for BKEL_DOMAIN
-        context.driver.get(context.userSession.config["BKEL_DOMAIN"])
-        context.driver.delete_cookie("MoodleSession")
-        context.driver.add_cookie(
-            {
-                "name": "MOODLEID1_",
-                "value": cookies["MOODLEID1_"],
-            }
-        )
-        context.driver.add_cookie(
-            {"name": "MoodleSession", "value": cookies["MoodleSession"]}
-        )
-        context.driver.refresh()
-        context.driver.find_element(By.ID, "user-action-menu")
+    context.userSession.logIn()
+    # confirm that user is logged in
+    context.driver.get(context.userSession.config["BKEL_DOMAIN"])
+    wait = WebDriverWait(context.driver, 10)
+    wait.until(EC.presence_of_element_located((By.ID, "user-action-menu")))
 
 
 @when("user visits the home page of BKeL")
@@ -44,5 +32,10 @@ def visit_bkel_home(context):
 @when("user sets English as their preferred language")
 def prefer_english(context):
     context.driver.get(context.userSession.config["BKEL_DOMAIN"] + "/?lang=en")
-    navItem = context.driver.find_element(By.CSS_SELECTOR, ".nav-link.active")
+    wait = WebDriverWait(context.driver, 10)
+    navItem = wait.until(
+        EC.visibility_of_element_located(
+            (By.XPATH, "//a[contains(@class,'nav-link active') and @role='menuitem']")
+        )
+    )
     assert navItem.text == "HOME"

@@ -4,4 +4,5 @@ CONFIG = {
     "SSO_DOMAIN": "https://sso.hcmut.edu.vn",
     "SSO_USERNAME": "",
     "SSO_PASSWORD": "",
+    "BROWSERS": ["CHROME", "FIREFOX", "EDGE"],
 }

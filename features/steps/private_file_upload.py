@@ -12,9 +12,18 @@ def access_private_files(context):
         By.XPATH, "//*[text()[contains(.,'Private files')]]"
     )
     context.driver.execute_script("arguments[0].click();", link)
-    assert (
-        context.driver.current_url
+    wait = WebDriverWait(context.driver, 10)
+    wait.until(
+        lambda _: context.driver.current_url
         == context.userSession.config["BKEL_DOMAIN"] + "/user/files.php"
+    )
+
+
+@then("system displays the file manager")
+def file_manager_displayed(context):
+    wait = WebDriverWait(context.driver, 10)
+    wait.until(
+        EC.visibility_of_element_located((By.CLASS_NAME, "filemanager-container"))
     )
 
 
@@ -26,7 +35,7 @@ def click_add_file_btn(context):
     ).click()
 
 
-@when("user selects '{filename}' to upload and clicks upload button")
+@when("user selects '{filename}' to upload")
 def select_file_and_upload(context, filename):
     wait = WebDriverWait(context.driver, 10)
     fileUpload = wait.until(EC.element_to_be_clickable((By.NAME, "repo_upload_file")))
@@ -49,7 +58,7 @@ def see_uploaded_file(context, filename):
         EC.presence_of_element_located(
             (
                 By.XPATH,
-                f"//div[text()='{filename}' and @class='fp-filename text-truncate']",
+                f"//*[text()='{filename}' and contains(@class,'fp-filename')]",
             )
         )
     )

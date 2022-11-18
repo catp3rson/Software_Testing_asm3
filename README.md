@@ -1,6 +1,10 @@
 # Software_Testing_asm3
 Assignment 3 of Software Testing (Sem 221)
 ## Initial setup
+- Install browsers:
+  - Chrome: `sudo apt-get install google-chrome`
+  - Firefox: `sudo apt-get install firefox`
+  - Edge: Download .deb file [here](https://www.microsoftedgeinsider.com/vi-vn/download?platform=linux-deb) and run `sudo dpkg -i microsoft-edge-beta_*.deb`
 - Install dependencies: `pip install -r requirements.txt`
 - Config webdriver manager based on [this guide](https://github.com/SergeyPirogov/webdriver_manager#configuration). Configurations for webdriver manager should be written in `.webdriver_manager.env` (see `.webdriver_manager_example.env` for the template)
 - Provide credentials for authentication (used to log in to BKeL) in `features/utils/config.py`: see `config_example.py` for the template
@@ -17,6 +21,7 @@ Assignment 3 of Software Testing (Sem 221)
 - Run tests for specific functional requirements: `./run_tests.sh func_req_1.feature func_req_2.feature ...`
   - Example: `./run_tests.sh private_file_upload.feature`
 - Run all tests: `./run_tests.sh`
+- In order to run a scenario/feature in multiple browsers, use the `@multibrowser` tag (see `features/private_file_upload.feature` file for example). You can change the list of browsers to run tests in by modifying `CONFIG["BROWSERS"]` in `features/utils/config.py`.
 
 ## Notes
 - It's best to install pre-commit hooks to re-format the files before pushing your work to origin. Commands:
