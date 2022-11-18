@@ -14,6 +14,8 @@ def before_all(context):
     # prepare headless browser
     options = Options()
     options.headless = True
+    options.add_argument("--window-size=1920,1080")
+    options.add_argument("--start-maximized")
     context.driver = webdriver.Chrome(ChromeDriverManager().install(), options=options)
 
 
