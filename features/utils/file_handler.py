@@ -2,6 +2,7 @@
 import os
 import shutil
 from behave.runner import Context
+from typing import Union
 
 
 class FileHandler:
@@ -21,8 +22,12 @@ class FileHandler:
             os.mkdir(self.cwd)
 
     def prepareFile(
-        self, context: Context, filename: str, rand_suffix: bool = True
-    ) -> str:
+        self,
+        context: Context,
+        filename: str,
+        rand_suffix: bool = True,
+        basename: bool = False,
+    ) -> Union[tuple[str, str], str]:
         """
         Prepare file to test uploading.
         Return absolute path to the pepared file.
@@ -40,11 +45,19 @@ class FileHandler:
             else:
                 self.randFiles[key] = {file: randFile}
             shutil.copyfile(file, randFile)
-            return randFile
+            if basename:
+                return (randFile, os.path.basename(randFile))
+            else:
+                return randFile
         else:
-            return file
+            if basename:
+                return (file, os.path.basename(file))
+            else:
+                return file
 
-    def getRandFile(self, context: Context, file: str) -> str:
+    def getRandFile(
+        self, context: Context, file: str, basename: bool = False
+    ) -> Union[tuple[str, str], str]:
         """
         Get absolute path to a generated file that was prepared previously.
         """
@@ -52,7 +65,11 @@ class FileHandler:
         if not os.path.isabs(file):
             file = os.path.join(self.cwd, file)
         if key in self.randFiles and file in self.randFiles[key]:
-            return self.randFiles[key][file]
+            randFile = self.randFiles[key][file]
+            if basename:
+                return (randFile, os.path.basename(randFile))
+            else:
+                return randFile
         return None
 
     def cleanUpRandFiles(self) -> None:

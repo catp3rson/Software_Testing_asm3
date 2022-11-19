@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import os
 from behave import *
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
@@ -56,8 +55,7 @@ def click_save_btn(context):
 
 @then("user sees '{filename}' in the list of uploaded files")
 def see_uploaded_file(context, filename):
-    randFile = context.fileHandler.getRandFile(context, filename)
-    randFilename = os.path.basename(randFile)
+    _, randFilename = context.fileHandler.getRandFile(context, filename, True)
     wait = WebDriverWait(context.driver, 20)
     wait.until(
         EC.presence_of_element_located(
