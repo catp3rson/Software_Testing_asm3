@@ -6,10 +6,12 @@ from typing import Union
 
 
 class FileHandler:
-    def __init__(self, dataDir: str) -> None:
+    def __init__(self, config: str) -> None:
         self.randFiles = dict()
-        self.dataDir = dataDir
-        self.cwd = dataDir
+        self.cwd = self.dataDir = config["DATA_DIR"]
+
+    def __del__(self) -> None:
+        self.cleanUpRandFiles()
 
     def setCwd(self, dir: str) -> None:
         """
@@ -39,12 +41,17 @@ class FileHandler:
             key = f"{context.scenario}-{context.feature}-{type(context.driver)}"
             name, ext = filename.split(".", 1)
             randFilename = f"{name}-{os.urandom(8).hex()}.{ext}"
-            randFile = os.path.join(self.cwd, randFilename)
             if key in self.randFiles:
-                self.randFiles[key][file] = randFile
+                if file in self.randFiles[key]:
+                    randFile = self.randFiles[key][file]
+                else:
+                    randFile = os.path.join(self.cwd, randFilename)
+                    shutil.copyfile(file, randFile)
+                    self.randFiles[key][file] = randFile
             else:
+                randFile = os.path.join(self.cwd, randFilename)
+                shutil.copyfile(file, randFile)
                 self.randFiles[key] = {file: randFile}
-            shutil.copyfile(file, randFile)
             if basename:
                 return (randFile, os.path.basename(randFile))
             else:

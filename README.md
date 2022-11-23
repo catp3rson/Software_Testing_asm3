@@ -21,7 +21,8 @@ Assignment 3 of Software Testing (Sem 221)
 - Run tests for specific functional requirements: `./run_tests.sh func_req_1.feature func_req_2.feature ...`
   - Example: `./run_tests.sh private_file_upload.feature`
 - Run all tests: `./run_tests.sh`
-- In order to run a scenario/feature in multiple browsers, use the `@multibrowser` tag (see `features/private_file_upload.feature` file for example). You can change the list of browsers to run tests in by modifying `CONFIG["BROWSERS"]` in `features/utils/config.py`.
+- In order to run a scenario/feature in multiple browsers, use the `@multibrowser` tag (see `features/private_file_upload.feature` file for example).
+- You can change the list of browsers to run tests in by modifying `CONFIG["DRIVERS"]["BROWSERS"]` in `features/utils/config.py`. The field `CONFIG["DRIVERS"]["DEFAULT_BROWSER"]` specifies which browser to use by default when a scenario/feature is not run in multiple browsers.
 
 ## Notes
 - It's best to install pre-commit hooks to re-format the files before pushing your work to origin. Commands:

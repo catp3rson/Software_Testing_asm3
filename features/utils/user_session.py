@@ -1,54 +1,51 @@
 # -*- coding: utf-8 -*-
 import requests
 import re
-from selenium import webdriver
-from webdriver_manager.chrome import ChromeDriverManager
-from webdriver_manager.firefox import GeckoDriverManager
-from webdriver_manager.microsoft import EdgeChromiumDriverManager
+from urllib.parse import urlunparse, urlencode
+from collections import namedtuple
+
+Components = namedtuple(
+    typename="Components",
+    field_names=["scheme", "netloc", "path", "params", "query", "fragment"],
+)
 
 
 class UserSession:
-    def __init__(self):
+    def __init__(self, domains: dict[str, dict[str, str]]):
+        if not ("SSO" in domains and "BKEL" in domains):
+            raise Exception("Domains needed for authentication are not specified")
+        if not ("name" in domains["SSO"] and "name" in domains["BKEL"]):
+            raise Exception("Domain names are not specified")
+        if not ("username" in domains["SSO"] and "password" in domains["SSO"]):
+            raise Exception("Credentials needed for authentication are not specified")
+        self.domains = domains
         self.session = None
         self.sessKey = None
-        self.config = None
-        self.drivers = []
 
-    def setConfig(self, config: dict) -> None:
-        if not (config["SSO_USERNAME"] and config["SSO_PASSWORD"]):
-            raise Exception("Credentials needed for authentication are not set")
-        if len(config["BROWSERS"]) == 0:
-            config["BROWSERS"].append("CHROME")
-        self.config = config
-        for browserName in config["BROWSERS"]:
-            self.drivers.append(self.__genDriver(browserName))
-
-    def logIn(self, force=False) -> None:
+    def logIn(self, force: bool = False) -> tuple[dict, str]:
         """
         Log in to BKeL via SSO service without interacting with the Web UI
         """
-        if self.config is None:
-            raise Exception("Configurations needed for authentication are not set")
         if self.session is not None:
             if force:
                 self.logOut()
             else:
-                return
+                return (self.session.cookies.get_dict(), self.sessKey)
         self.session = requests.Session()
         # get JSESSIONID
-        self.session.get(url=self.config["SSO_DOMAIN"] + "/cas/login")
+        self.session.get(url=self.buildUrl("SSO", path="/cas/login"))
         # get CSRF token
-        response = self.session.get(url=self.config["SSO_DOMAIN"] + "/cas/login")
+        response = self.session.get(url=self.buildUrl("SSO", path="cas/login"))
         tmp = re.search(r'"(LT-\d+-[A-Za-z0-9]+)"', response.text)
         lt = tmp.group(1)
         tmp = re.search(r'name="execution" value="(.*?)"', response.text)
         execution = tmp.group(1)
         # authenticate
         response = self.session.post(
-            url=self.config["SSO_DOMAIN"] + "/cas/login",
+            url=self.buildUrl("SSO", path="/cas/login"),
             data={
-                "username": self.config["SSO_USERNAME"],
-                "password": self.config["SSO_PASSWORD"],
+                "username": self.domains["SSO"]["username"],
+                "password": self.domains["SSO"]["password"],
                 "lt": lt,
                 "execution": execution,
                 "_eventId": "submit",
@@ -59,50 +56,31 @@ class UserSession:
             raise Exception("Failed to log in via SSO service")
         # log in to BKeL
         response = self.session.get(
-            url=self.config["BKEL_DOMAIN"] + "/login/index.php?authCAS=CAS",
+            url=self.buildUrl(
+                "BKEL", path="/login/index.php", query={"authCAS": "CAS"}
+            ),
             allow_redirects=True,
         )
         # extract sessKey
         tmp = re.search(r'"sesskey":"(.*?)"', response.text)
         self.sessKey = tmp.group(1)
+        return (self.session.cookies.get_dict(), self.sessKey)
 
-        # transfer cookies to drivers
-        cookies = self.session.cookies.get_dict()
-        for driver in self.drivers:
-            driver.get(self.config["BKEL_DOMAIN"])
-            driver.add_cookie(
-                {
-                    "name": "MOODLEID1_",
-                    "value": cookies["MOODLEID1_"],
-                }
-            )
-            driver.add_cookie(
-                {"name": "MoodleSession", "value": cookies["MoodleSession"]}
-            )
-
-    def logOut(self) -> None:
+    def logOut(self) -> bool:
         """
-        Log out of BKeL and SSO service
+        Log out of BKeL and SSO service.
+        Return True if succeeded.
         """
         if self.session is None:
-            return
+            return False
         self.session.get(
-            url=self.config["BKEL_DOMAIN"]
-            + f"/login/logout.php?sesskey={self.sessKey}",
+            url=self.buildUrl(
+                "BKEL", path="/login/logout.php", query={"sesskey": self.sessKey}
+            ),
             allow_redirects=True,
         )
         self.session = self.sessKey = None
-        # remove cookies from browsers
-        for driver in self.drivers:
-            driver.delete_cookie("MOODLEID1_")
-            driver.delete_cookie("MoodleSession")
-
-    def closeBrowsers(self) -> None:
-        """
-        Call close() on all drivers. Should be called at the very end.
-        """
-        for driver in self.drivers:
-            driver.close()
+        return True
 
     def getSessionInfo(self) -> tuple[dict, str]:
         """
@@ -121,27 +99,24 @@ class UserSession:
     def isLoggedIn(self) -> bool:
         return self.session is not None
 
-    def __genDriver(self, browserName: str):
-        if browserName == "CHROME":
-            options = webdriver.ChromeOptions()
-            options.headless = True
-            driver = webdriver.Chrome(ChromeDriverManager().install(), options=options)
-        elif browserName == "FIREFOX":
-            options = webdriver.FirefoxOptions()
-            options.headless = True
-            driver = webdriver.Firefox(
-                GeckoDriverManager().install(),
-                options=options,
+    def buildUrl(
+        self,
+        domain: str,
+        scheme: str = "https",
+        path: str = "/",
+        params: dict = None,
+        query: dict = None,
+        fragment: str = "",
+    ):
+        if not (domain == "SSO" or domain == "BKEL"):
+            raise Exception("Unknown domain")
+        return urlunparse(
+            Components(
+                scheme=scheme,
+                netloc=self.domains[domain]["name"],
+                path=path,
+                params=urlencode(params) if params is not None else "",
+                query=urlencode(query) if query is not None else "",
+                fragment=fragment,
             )
-        elif browserName == "EDGE":
-            options = webdriver.EdgeOptions()
-            options.headless = True
-            driver = webdriver.Edge(
-                EdgeChromiumDriverManager().install(), options=options
-            )
-        else:
-            raise Exception("Browser type is not supported.")
-
-        driver.set_window_size(1920, 1080)
-        driver.maximize_window()
-        return driver
+        )

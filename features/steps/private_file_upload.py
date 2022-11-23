@@ -2,66 +2,53 @@
 from behave import *
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import WebDriverWait
 
-
-@when("user clicks on 'Private files' in user menu")
-def access_private_files(context):
-    link = context.driver.find_element(
-        By.XPATH, "//*[text()[contains(.,'Private files')]]"
-    )
-    context.driver.execute_script("arguments[0].click();", link)
-    wait = WebDriverWait(context.driver, 10)
-    wait.until(
-        lambda _: context.driver.current_url
-        == context.config["BKEL_DOMAIN"] + "/user/files.php"
-    )
+from utils.driver_handler import DriverHandler
+from common import *
 
 
 @then("system displays the file manager")
 def file_manager_displayed(context):
-    wait = WebDriverWait(context.driver, 10)
-    wait.until(
-        EC.visibility_of_element_located((By.CLASS_NAME, "filemanager-container"))
+    DriverHandler.waitDriver(
+        context.driver,
+        EC.visibility_of_element_located((By.CLASS_NAME, "filemanager-container")),
     )
 
 
-@when("user clicks on the 'Add file' button of file manager")
-def click_add_file_btn(context):
-    wait = WebDriverWait(context.driver, 10)
-    wait.until(
-        EC.element_to_be_clickable((By.CSS_SELECTOR, ".fp-toolbar .fp-btn-add"))
-    ).click()
-
-
-@when("user selects '{filename}' to upload")
+@when("user selects '(.*?)' to upload")
 def select_file_and_upload(context, filename):
     # append filename with random string to avoid
     # conflict with previously uploaded files
     randFile = context.fileHandler.prepareFile(context, filename)
-    wait = WebDriverWait(context.driver, 10)
-    fileUpload = wait.until(EC.element_to_be_clickable((By.NAME, "repo_upload_file")))
+    fileUpload = DriverHandler.waitDriver(
+        context.driver, EC.presence_of_element_located((By.NAME, "repo_upload_file"))
+    )
     fileUpload.send_keys(randFile)
-    uploadBtn = context.driver.find_element(By.CLASS_NAME, "fp-upload-btn")
+    uploadBtn = DriverHandler.waitDriver(
+        context.driver, EC.element_to_be_clickable((By.CLASS_NAME, "fp-upload-btn"))
+    )
     uploadBtn.click()
 
 
-@when("user clicks on 'Save changes' button")
-def click_save_btn(context):
-    wait = WebDriverWait(context.driver, 10)
-    saveBtn = wait.until(EC.element_to_be_clickable((By.NAME, "submitbutton")))
-    context.driver.execute_script("arguments[0].click();", saveBtn)
-
-
-@then("user sees '{filename}' in the list of uploaded files")
+@then("user sees '(.*?)' in the list of uploaded files")
 def see_uploaded_file(context, filename):
     _, randFilename = context.fileHandler.getRandFile(context, filename, True)
-    wait = WebDriverWait(context.driver, 20)
-    wait.until(
+    DriverHandler.waitDriver(
+        context.driver,
         EC.presence_of_element_located(
             (
                 By.XPATH,
                 f"//*[text()='{randFilename}' and contains(@class,'fp-filename')]",
             )
-        )
+        ),
     )
+
+
+@given("user has already uploaded '(.*?)'")
+def already_uploaded_file(context, filename):
+    click_on_usermenu_option(context, "Private files")
+    file_manager_displayed(context)
+    click_unique_text_button(context, "Add...")
+    select_file_and_upload(context, filename)
+    click_unique_text_button(context, "Save changes")
+    see_uploaded_file(context, filename)
