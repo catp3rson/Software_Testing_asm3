@@ -1,6 +1,7 @@
 # Software_Testing_asm3
 Assignment 3 of Software Testing (Sem 221)
 ## Initial setup
+- Setting up Moodle build using Docker: https://github.com/catp3rson/Software_Testing_asm3/tree/main/moodle_build
 - Install browsers:
   - Chrome: `sudo apt-get install google-chrome`
   - Firefox: `sudo apt-get install firefox`

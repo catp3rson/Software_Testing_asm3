@@ -1,4 +1,5 @@
-# Build Moodle for tesing
+# Re-creating Moodle build
+## Instructions
 - Install docker and docker-compose
 - Run the following commands for initial setup (only need to run these on first time)
 ```
