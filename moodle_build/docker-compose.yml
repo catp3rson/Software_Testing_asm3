@@ -22,19 +22,25 @@ services:
       - "$HTTP_PORT:8080"
       - "$HTTPS_PORT:8443"
     environment:
-      - ALLOW_EMPTY_PASSWORD=yes
+      - PHP_UPLOAD_MAX_FILESIZE=500M
+      - PHP_POST_MAX_SIZE=500M
+      - PHP_MAX_EXECUTION_TIME=300
       - MOODLE_DATABASE_USER=bn_moodle
       - MOODLE_DATABASE_PASSWORD=bitnami
       - MOODLE_DATABASE_NAME=bitnami_moodle
     networks:
       - moodle-network
     volumes:
-      - moodle_data:/bitnami/moodle
+      - moodle:/bitnami/moodle
+      - moodle_data:/bitnami/moodledata
 
 volumes:
   mariadb_data:
     external: true
     name: mariadb_data
+  moodle:
+    external: true
+    name: moodle
   moodle_data:
     external: true
     name: moodle_data
